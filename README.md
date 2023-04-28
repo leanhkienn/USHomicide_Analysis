@@ -5,8 +5,8 @@
  - The data used in this analysis was obtained from the CDC Wonders Database. The data was downloaded in a CSV format and imported into R for analysis.
  
 # Tools Used
-  Python: Data cleaning and pre-processing (libraries: Pandas, Numpy)
-  RStudio: Statistical analysis and data visualization (libraries: tidyverse, ggplot2, dplyr, knitr, plotly, DT)
+  - Python: Data cleaning and pre-processing (libraries: Pandas, Numpy)
+   RStudio: Statistical analysis and data visualization (libraries: tidyverse, ggplot2, dplyr, knitr, plotly, DT)
 
 
 # Data Cleaning and Preparation
