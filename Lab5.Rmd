@@ -1,0 +1,257 @@
+---
+title: "Lab 5"
+author: "Kien Le"
+date: "04/25/2023"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library(plotly)
+library(DT)
+```
+
+## Working with Our Project's DataSet
+
+#1
+
+```{r }
+# importing cleaned dataset
+data <- read.csv("data1.csv")
+```
+
+```{r }
+# drop some unecessary columns
+data <- data[-c(1,6)]
+```
+
+```{r }
+colnames(data)[5] <- "Year"
+colnames(data)[1] <- "State"
+colnames(data)[2] <- "State_code"
+```
+
+```{r cars}
+# factor
+data$Gender <- factor(data$Gender)
+data$Gender.Code <- factor(data$Gender.Code)
+
+
+#Factor columns
+summary(data)
+```
+
+
+#2
+> The variables that I will be focusing on are: Residence.State, Gender, Year, Deaths, Population. I feel like all the variables in this dataset from the CDC are equally important. 
+  The outcome variable is "Deaths"
+  
+> Thesis: 
+1. States with higher populations will have higher numbers of homicide/assault deaths.
+2. The crude rate of homicide/assault deaths will be higher for males than females.
+3. The number of homicide/assault deaths will decrease over time due to advances in technology and law enforcement.
+4. Certain states will have consistently higher or lower numbers of homicide/assault deaths compared to the national average.
+5. There may be a correlation between higher rates of poverty or inequality and higher rates of homicide/assault deaths.
+
+#3
+```{r plots}
+# Create a new data frame with the total number of homicides per year
+total_deaths <- data %>% 
+  group_by(Year) %>% 
+  summarize(total_deaths = sum(Deaths))
+
+# Plot the total number of homicides per year
+ggplot(total_deaths, aes(x = Year, y = total_deaths, group = 1)) +
+  geom_line(color = "red") +
+  labs(title = "Total Number of Homicides per Year across all States",
+       x = "Year",
+       y = "Total Homicides")
+```
+<br>
+> The plot shows a significant decrease in the total number of homicides in 2022, with a peak in 2021. However, it is important to note that the data for 2022 is marked as "provisional," so the number of homicides for that year may not be complete. 
+
+# 4
+```{r}
+total_deaths <- data %>% 
+  group_by(Year, Gender) %>% 
+  mutate(total_deaths = sum(Deaths))
+
+# Plot the total number of homicides per year
+ggplot(total_deaths, aes(x = Year, y = total_deaths, group = Gender)) +
+  geom_line(aes(color = Gender)) +
+  geom_point(aes(color=Gender))+
+  scale_color_manual(values = c("#7fc97f", "#6BAED6"))+
+  labs(title = "Total Number of Homicides per Year across all States",
+       x = "Year",
+       y = "Total Homicide Deaths") +
+  theme_bw()
+```
+<br>
+> We can clearly see that Female's total deaths are dominant by Males' total death.
+
+# 5
+> I selected the observations to highlight by filtering the total_deaths data frame to only include the rows where the total number of deaths in a given year for a specific gender was the highest. I achieved this by first arranging the data frame by year and total deaths in descending order, then grouping the data by year and selecting the first row for each group using slice(1). I then added a new variable to the data frame indicating whether the observation was the highest total deaths for its gender, using mutate(). Finally, I passed this data frame to geom_line() with aes() that mapped the color aesthetic to this new variable, thereby highlighting these observations.
+
+
+# 6
+
+Since Califonia has the most homicide, We will be looking at more detail for Homicides for California State.
+```{r}
+# Create a subset of the data that includes only California for 2020 and 2021
+ca_data <- data %>%
+  filter(State == "California", Year %in% c("2018", "2019", "2020", "2021","2022"))
+
+# Create a stacked bar chart to show the breakdown of homicides by gender in California for 2020 and 2021
+ggplot(ca_data, aes(x = Year, y = Deaths, fill = Gender)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("#7fc97f", "#6BAED6")) +
+  labs(title = "Deaths by Gender in California (2020-2021)",
+       x = "Year",
+       y = "Number of Homicides",
+       fill = "Gender")+
+  theme_bw()
+```
+<br>
+
+Now lets take a look in states that have relatively low counts of deaths:
+```{r}
+# Create a subset of data for the highlighted observations
+highlighted <- data %>% 
+  filter(State %in% c("New Hampshire", "Hawaii"))
+
+# Create a grouped bar chart of homicides in California and Texas in 2000 and 2015
+ggplot(highlighted, aes(x = Year, y = Deaths, fill = State)) +
+  geom_bar(position = position_dodge(), stat = "identity") +
+  scale_fill_manual(values = c("New Hampshire" = "#1f77b4", "Hawaii" = "#7fc97f")) +
+  labs(title = "Deaths in New Hampshire and Hawaii in 2018 and 2022",
+       x = "Year",
+       y = "Total Homicide Deaths",
+       fill = "State")+
+  theme_bw()
+```
+<br>
+> Although New HampShire has a relatively small population compareed to others, but the count of deaths is increasing, therefore lets take a deeper look into it.
+
+
+# 7
+> Overall, I think the data and plots I just shown did support the initial hypothesis, which states that the number of homicide deaths will decrease over time due to advances in technology and law enforcement. We can clearly see that total deaths has been decreasing recently.
+
+
+# 8
+For this question, I will choose the observation "Crude Rate" to include in our analysis:
+```{r}
+data$Crude.Rate <- as.numeric(data$Crude.Rate)
+data$Year <- as.numeric(data$Year)
+
+
+plot <- ggplot(data, aes(x= Gender, y = Crude.Rate)) +
+          geom_boxplot() +
+          labs(title = "Homicide Assault Rates by Gender, 2018-2022", x = "Gender", y = "Crude Rate") +
+          theme_minimal() +
+          theme(plot.title = element_text(hjust = 0.5, size = 18),
+                axis.text = element_text(size = 12),
+                axis.title = element_text(size = 14))
+
+ggplotly(plot)
+```
+<br>
+
+> For Crude Rate, there seem to be the same conclusion for Gender at the beginning of the analysis.
+
+
+Lets take a look at some specific states, including ours: Massachusetts!!!
+```{r}
+states <- c("New York", "California", "Texas", "Massachusetts")
+
+# Filter data to only include certain states
+selected_states <- filter(data, State %in% states)
+
+# Plot homicde rate per 100,000 by  state and year
+plot <- ggplot(selected_states, aes(x = Year, y = Crude.Rate, color = Gender)) + 
+  geom_line() +
+  facet_wrap(~ State, scales = "free_y") +
+  labs(title = "Homicide Rate Per 100000 ppl by State and Year", 
+       x = "Year", y = "Homicide Rate", color = "Gender") +
+  theme_bw()
+
+ggplotly(plot)
+
+```
+<br>
+
+Now, we will create another interactive table with total population and deaths by states:
+```{r}
+# Group by years
+state_summary <- data %>%
+  group_by(State) %>%
+  summarize(total_deaths = sum(Deaths), 
+            total_population = sum(Population))
+
+# Create the interactive table
+datatable(state_summary,
+          rownames = FALSE,
+          class = "hover",
+          extensions = "Buttons") 
+```
+<br>
+
+Lets see the relationship between population and total deaths by States:
+```{r}
+ggplot(state_summary, aes(x = total_population, y = total_deaths)) +
+  theme_set(theme_bw()) +
+  geom_point(alpha = 0.5) + 
+  labs(x = "Total Population", y = "Total Deaths", title = "Total Deaths vs. Total Population") +
+  geom_smooth()
+```
+<br>
+
+We will be examine the number of Deaths per 100000 vs. Population of 4 chosen states;
+```{r}
+
+ggplot(selected_states, aes(x=Population, y=Crude.Rate, color=State)) + 
+  geom_point(alpha=0.5) + 
+  
+  labs(x="Population (log scale)", y="Deaths per 100,000 people") +
+  ggtitle("Crude Rate vs. Population by States") +
+  
+  geom_smooth(method=lm, se=FALSE) + 
+  facet_wrap(~State, nrow=2, scales="free")
+
+```
+<br>
+
+
+# 9
+> Choosing Crude Rate (Deaths per 100,000 people) observation did not change the way I think about the dataset very much since the observations that I chose for question 8) does not related to the initial observations that I chose (which was Gender, Total Deaths).
+
+
+# 10
+> In conclusion, the trend for homicides were still increasing from 2018 until 2021, however saw a significant decrease in last year 2022. We can also see that Male's Homicides is dominant compared to that of Female, implying somewhat more violence in Men. Besides, the graphs also demonstrate the positive relationship between the Deaths count and Total population across all States, let alone Gender. 
+
+> I learned that just looking at a few observations are not sufficient for concluding facts about the dataset. When I look at the death Rate per 100,000 people and Population, it shows a negative linear relationship. This also prooves that States with small population can also have a significant number of deaths.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
